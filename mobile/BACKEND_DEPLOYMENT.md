@@ -1,53 +1,87 @@
-# Mall4j backend deployment checklist
+# Mall4j backend deployment
 
-The upstream Mall4j backend is a Java/Spring Boot service backed by MySQL and Redis.
-It is not a Supabase backend. Deploy these services before producing a production APK.
+The Mall4j backend is a Java/Spring Boot application backed by MySQL and Redis. It is
+not a Supabase backend. The Android client must connect to the API over a public HTTPS
+domain; MySQL and Redis stay on a private Docker network.
 
-## Important upstream configuration findings
+## Verified upstream configuration
 
-- The upstream Docker Compose example uses MySQL 5.7 and Redis 5.0.4.
-- The API production profile listens on container port **8112**, not 8086.
-- The upstream sample production profile contains local database credentials and loopback
-  host values. They must be overridden for deployment.
-- The root application configuration defaults to the `dev` profile. Set
-  `SPRING_PROFILES_ACTIVE=prod` explicitly in production.
-- The mobile client's production API setting currently defaults to
-  `http://127.0.0.1:8086`. The Android build workflow replaces this with the HTTPS
-  URL stored in the `MALL4J_API_BASE_URL` repository variable.
+- The supplied Dockerfiles launch the `docker` Spring profile.
+- In that profile, the API listens on **8086** and the admin service on **8085**.
+- The separate `prod` profile uses API port **8112** and admin port **8111**. Do not
+  mix the `prod` ports with the supplied Dockerfiles, which explicitly activate
+  `docker`.
+- The Docker profile accepts `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE`,
+  `MYSQL_USERNAME`, `MYSQL_PASSWORD`, `REDIS_HOST`, `REDIS_PORT`, and
+  `REDIS_DATABASE`. Spring Redis password can be supplied as
+  `SPRING_DATA_REDIS_PASSWORD`.
+- The upstream SQL dump creates the `yami_shops` database and contains table/data
+  initialization. The deployment template mounts it into MySQL's first-run init
+  directory. MySQL only runs these scripts when its data directory is empty.
 
-## Required production settings
+## Included deployment template
 
-Configure the API container with values equivalent to:
+Files in `infra/` provide a starting point:
 
-- `SPRING_PROFILES_ACTIVE=prod`
-- `SPRING_DATASOURCE_URL=jdbc:mysql://<mysql-host>:3306/yami_shops?...&serverTimezone=GMT%2B8`
-- `SPRING_DATASOURCE_USERNAME=<dedicated database user>`
-- `SPRING_DATASOURCE_PASSWORD=<strong unique password>`
-- `SPRING_DATA_REDIS_HOST=<redis-host>`
-- `SPRING_DATA_REDIS_PORT=6379`
-- `SPRING_DATA_REDIS_PASSWORD=<strong unique password>`
-- `REDIS_DATABASE=0`
+- `docker-compose.production.yml`: MySQL 5.7, Redis 5.0.4, Mall4j API and admin.
+- `.env.production.example`: required secrets and deployment paths.
+- `.gitignore`: prevents local secrets and backups from being committed.
 
-Use private Docker networking for MySQL and Redis. Do not expose database or Redis ports
-to the public internet. Terminate TLS at a reverse proxy and expose only HTTPS API traffic.
-Set upload/storage paths to persistent volumes and configure backups and monitoring.
+The database and Redis have no public host ports. API and admin are bound to
+`127.0.0.1` only, so a host-level reverse proxy can reach them without exposing
+them directly to the internet.
 
-## Database initialization
+## Deployment host preparation
 
-Use the SQL scripts shipped in the upstream `db/` directory. Verify the exact schema
-version and initialization order against the checked-out upstream revision before
-running them on a production database. Do not point the app at an empty database and
-assume it is ready.
+1. Use a Linux server with Docker Engine and the Docker Compose plugin.
+2. Check out this repository and the matching upstream `gz-yami/mall4j` source into
+   sibling directories, unless you set `MALL4J_SOURCE_DIR` to another path.
+3. Copy `infra/.env.production.example` to `infra/.env.production`. Replace every
+   placeholder with unique, strong secrets. Never upload the real file to GitHub.
+4. From the repository root, start the stack:
 
-## Android build gate
+   ```bash
+   docker compose --env-file infra/.env.production -f infra/docker-compose.production.yml up -d --build
+   ```
 
-Set the GitHub repository variable `MALL4J_API_BASE_URL` to the public HTTPS API base
-URL only after the API is deployed and its health/login endpoints have been tested.
-Then run the GitHub Actions workflow named **Build Mall4j Android APK**.
+5. Check service state and logs:
 
-## Credentials and release safety
+   ```bash
+   docker compose --env-file infra/.env.production -f infra/docker-compose.production.yml ps
+   docker compose --env-file infra/.env.production -f infra/docker-compose.production.yml logs --tail=200 api admin
+   ```
 
-Never commit production credentials, private keys, payment credentials, or database
-dumps to this repository. Keep secrets in the hosting provider's secret manager.
-The upstream code is AGPL-3.0 and its uni-app README says commercial use requires
-author authorization. Resolve those terms before commercial launch.
+6. Configure a reverse proxy and TLS certificate. Route the public API hostname to
+   `http://127.0.0.1:8086`. Keep the admin panel restricted (VPN, allowlisted IPs,
+   or another access-control layer); do not publish it openly.
+7. Test API reachability, login, product/category reads, image uploads, cart, order
+   creation, and admin operations before configuring the Android build.
+
+## Important operational checks
+
+- The included upstream database image is MySQL 5.7 and Redis is pinned to 5.0.4 for
+  compatibility with the original Compose setup. Both are legacy versions; assess
+  supported upgrades and security maintenance before a public production launch.
+- The SQL import is destructive on a fresh schema because it contains table drops.
+  It is mounted only as a first-initialization script. Never delete the database
+  volume to "reset" a live store.
+- Back up MySQL and persistent uploads regularly; test restore procedures.
+- The admin service references an XXL-JOB admin endpoint. The template exposes
+  `XXL_JOB_ADDRESS` and `XXL_JOB_ACCESS_TOKEN`; deploy/configure the matching
+  scheduler service if scheduled jobs are required.
+- Review payment provider integration, callback URLs, email/SMS credentials,
+  object storage, shipping providers, privacy policy, and applicable local laws
+  before taking real orders or money.
+- Never expose MySQL or Redis ports publicly. Keep secrets out of source control.
+
+## Android API endpoint
+
+After the API is reachable through HTTPS, set the GitHub repository variable
+`MALL4J_API_BASE_URL` to the API base URL, for example `https://api.example.com`.
+Do not use localhost, an IP-only HTTP endpoint, or a private LAN address in the app.
+
+## License
+
+The upstream repository is AGPL-3.0. Its uni-app README also states that commercial
+use requires authorization from the author. Resolve the applicable license and
+commercial authorization before public commercial operation.
