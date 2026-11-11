@@ -26,12 +26,17 @@ if [[ ! -f "$SOURCE_DIR/pom.xml" || ! -f "$SOURCE_DIR/db/yami_shop.sql" ]]; then
   exit 1
 fi
 
-for name in MYSQL_ROOT_PASSWORD MYSQL_USER MYSQL_PASSWORD REDIS_PASSWORD XXL_JOB_ADDRESS XXL_JOB_ACCESS_TOKEN; do
+for name in MYSQL_ROOT_PASSWORD MYSQL_USER MYSQL_PASSWORD REDIS_PASSWORD XXL_JOB_ACCESS_TOKEN; do
   if [[ -z "${!name:-}" || "${!name}" == REPLACE_* ]]; then
     echo "Set a real value for $name in infra/.env.production before deployment." >&2
     exit 1
   fi
 done
+
+if [[ "$MYSQL_USER" != "mall4j_app" ]]; then
+  echo "MYSQL_USER must remain mall4j_app because the XXL-JOB schema grants privileges to this account." >&2
+  exit 1
+fi
 
 echo "Building Mall4j backend modules with Java 17 in a Maven container..."
 docker run --rm \
