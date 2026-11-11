@@ -2,17 +2,20 @@
 """Apply production-only Mall4j settings to a separate upstream checkout."""
 from pathlib import Path
 import sys
+from urllib.parse import urlsplit
 
 if len(sys.argv) != 5:
     raise SystemExit("Usage: configure-upstream.py SOURCE_DIR RESOURCES_BASE_URL TOKEN_AES_KEY ADMIN_WEB_ORIGIN")
 
 source = Path(sys.argv[1]).resolve()
 resources_url, token_key, admin_origin = sys.argv[2:]
-if not resources_url.startswith("https://") or not resources_url.endswith("/mall4j/img/"):
+resource = urlsplit(resources_url)
+origin = urlsplit(admin_origin)
+if resource.scheme != "https" or not resource.netloc or resource.path != "/mall4j/img/" or resource.query or resource.fragment:
     raise SystemExit("RESOURCES_BASE_URL must be HTTPS and end with /mall4j/img/")
-if not admin_origin.startswith("https://") or "/" in admin_origin.removeprefix("https://"):
+if origin.scheme != "https" or not origin.netloc or origin.path or origin.query or origin.fragment:
     raise SystemExit("ADMIN_WEB_ORIGIN must be an HTTPS origin without a path")
-if len(token_key.encode("utf-8")) not in (16, 24, 32):
+if len(token_key.encode("utf-8")) not in (16, 24, 32) or not token_key.isalnum():
     raise SystemExit("TOKEN_AES_KEY must be exactly 16, 24 or 32 UTF-8 bytes")
 
 properties = source / "yami-shop-common/src/main/resources/shop.properties"
