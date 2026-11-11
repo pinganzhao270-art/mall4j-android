@@ -39,18 +39,17 @@ jobs:
         working-directory: mall4j-upstream/front-end/mall4uni
         run: pnpm install --no-frozen-lockfile
 
-      - name: Configure production API endpoint
+      - name: Configure production API and image endpoints
         working-directory: mall4j-upstream/front-end/mall4uni
         env:
           MALL4J_API_BASE_URL: ${{ vars.MALL4J_API_BASE_URL }}
           MALL4J_RESOURCES_BASE_URL: ${{ vars.MALL4J_RESOURCES_BASE_URL }}
         run: |
-          if [ -z "$MALL4J_API_BASE_URL" ]; then
-            echo "::error::Set repository variable MALL4J_API_BASE_URL to your deployed Mall4j API HTTPS URL before building a production APK."
+          if [ -z "$MALL4J_API_BASE_URL" ] || [ -z "$MALL4J_RESOURCES_BASE_URL" ]; then
+            echo "::error::Set MALL4J_API_BASE_URL and MALL4J_RESOURCES_BASE_URL repository variables before building a production APK."
             exit 1
           fi
           python3 - <<'PY'
-          import os
           import os
           from pathlib import Path
           from urllib.parse import urlsplit
@@ -61,8 +60,10 @@ jobs:
           }
           for key, value in values.items():
               parsed = urlsplit(value)
-              if parsed.scheme != "https" or not parsed.netloc or parsed.query or parsed.fragment or "'" in value:
-                  raise SystemExit(key + " must be a valid HTTPS URL without query or fragment")
+              if parsed.scheme != "https" or not parsed.netloc or parsed.query or parsed.fragment or "'" in value or "example.com" in value:
+                  raise SystemExit(key + " must be a real HTTPS URL without query or fragment")
+          if not values["VITE_APP_RESOURCES_URL"].endswith("/mall4j/img/"):
+              raise SystemExit("MALL4J_RESOURCES_BASE_URL must end with /mall4j/img/")
           path = Path(".env.production")
           content = path.read_text()
           for key, value in values.items():
