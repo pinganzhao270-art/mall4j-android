@@ -69,11 +69,17 @@ docker run --rm \
   maven:3.9-eclipse-temurin-17 \
   mvn -B -DskipTests package
 
-echo "Starting database, Redis, API and admin services..."
+echo "Validating Compose configuration..."
 MALL4J_SOURCE_DIR="$SOURCE_DIR" docker compose \
   --env-file "$ENV_FILE" \
   -f "$COMPOSE_FILE" \
-  up -d --build
+  config --quiet
+
+echo "Starting database, Redis, scheduler, APIs and management web..."
+MALL4J_SOURCE_DIR="$SOURCE_DIR" docker compose \
+  --env-file "$ENV_FILE" \
+  -f "$COMPOSE_FILE" \
+  up -d --build --wait --wait-timeout 600
 
 echo "Deployment command completed. Review container health and logs:"
 MALL4J_SOURCE_DIR="$SOURCE_DIR" docker compose \
@@ -81,4 +87,4 @@ MALL4J_SOURCE_DIR="$SOURCE_DIR" docker compose \
   -f "$COMPOSE_FILE" \
   ps
 
-echo "API is bound to 127.0.0.1:8086; configure infra/nginx-api.conf and HTTPS before public use."
+echo "Services are bound to loopback; configure infra/nginx-api.conf, infra/nginx-admin-api.conf and infra/nginx-admin-web.conf with HTTPS before public use."
