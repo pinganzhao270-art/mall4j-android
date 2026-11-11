@@ -104,3 +104,23 @@ jobs:
 
       - name: Validate Docker Compose configuration
         run: docker compose --env-file infra/.env.production.example -f infra/docker-compose.production.yml config --quiet
+
+  validate-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout upstream Mall4j
+        uses: actions/checkout@v4
+        with:
+          repository: gz-yami/mall4j
+          ref: master
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Compile backend modules
+        run: mvn -B -DskipTests package
