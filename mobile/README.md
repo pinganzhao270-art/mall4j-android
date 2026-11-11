@@ -1,23 +1,40 @@
 # Mall4j Android application
 
 This repository builds the Android client from the upstream Mall4j uni-app application at
-`gz-yami/mall4j/front-end/mall4uni`. The upstream project already defines the
-`build:app-android` command. This repository keeps the build configuration separate
-from the upstream source and does not modify the upstream repository.
+`gz-yami/mall4j/front-end/mall4uni`. The upstream project defines the
+`build:app-android` command. This repository keeps deployment/build configuration
+separate from the upstream source and does not modify the upstream repository.
+
+## Application capabilities
+
+The upstream uni-app client includes storefront pages for home, categories, product
+search and details, shopping cart, account login/registration, delivery addresses,
+order submission, order list/details, payment result, shipment tracking and notices.
+Actual availability of functions such as payment, shipping and notifications depends
+on the corresponding backend/provider configuration.
 
 ## Backend requirement
 
 The app requires a publicly reachable, production Mall4j API. Deploy the Java API,
-MySQL and Redis services first, configure HTTPS and the production database credentials,
+MySQL and Redis services first, configure HTTPS and production database credentials,
 and initialize the Mall4j database using the upstream SQL scripts.
 
-In GitHub repository settings, add a repository variable:
+A Docker Compose deployment template and secret-variable example are provided in
+`infra/`. Read [BACKEND_DEPLOYMENT.md](BACKEND_DEPLOYMENT.md) before using it.
+The template intentionally keeps MySQL and Redis private and binds API/admin ports
+to loopback for a host-level reverse proxy.
+
+## Android API configuration
+
+After the API is deployed and verified through HTTPS, add a GitHub repository variable:
 
 - Name: `MALL4J_API_BASE_URL`
 - Value: your API base URL, for example `https://api.example.com`
 
-Do not use localhost or a private LAN address. Do not put database passwords,
-JWT signing keys, payment secrets or other credentials in this variable or in app code.
+The upstream mobile client reads `VITE_APP_BASE_API` from its production environment.
+The build workflow injects the configured HTTPS URL into that setting. Do not use
+localhost or a private LAN address. Do not put database passwords, JWT signing keys,
+payment secrets or other credentials in this variable or in app code.
 
 ## Build
 
