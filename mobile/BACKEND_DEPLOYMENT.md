@@ -70,6 +70,10 @@ uses 8112 and 8111; do not mix these ports with the supplied Dockerfiles.
 
 ## Database initialization and persistence
 
+Uploaded images are stored in the persistent `mall4j_uploads` Docker volume and served
+through the admin API under `/mall4j/img/`. The mobile app and admin frontend must both
+use the configured `MALL4J_RESOURCES_BASE_URL` value.
+
 The SQL files are mounted into MySQL's first-run initialization directory. MySQL only
 executes them when its data directory is empty. The Mall4j SQL dump contains table
 drops and is destructive if manually re-run against a live store. Never delete the
