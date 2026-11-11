@@ -2,12 +2,19 @@ name: Validate Mall4j Client
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - develop/android-foundation
+    paths:
+      - ".github/workflows/validate-client.yml"
+      - "mobile/**"
+      - "infra/**"
 
 permissions:
   contents: read
 
 concurrency:
-  group: mall4j-client-validation
+  group: mall4j-client-validation-final
   cancel-in-progress: true
 
 jobs:
