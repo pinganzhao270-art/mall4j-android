@@ -15,7 +15,10 @@ set -a
 source "$ENV_FILE"
 set +a
 
-SOURCE_DIR="${MALL4J_SOURCE_DIR:-$ROOT_DIR/../mall4j-upstream}"
+SOURCE_DIR="${MALL4J_SOURCE_DIR:-../mall4j-upstream}"
+if [[ "$SOURCE_DIR" != /* ]]; then
+  SOURCE_DIR="$ROOT_DIR/$SOURCE_DIR"
+fi
 SOURCE_DIR="$(cd "$SOURCE_DIR" 2>/dev/null && pwd)" || {
   echo "Mall4j source directory not found: ${MALL4J_SOURCE_DIR:-$ROOT_DIR/../mall4j-upstream}" >&2
   exit 1
