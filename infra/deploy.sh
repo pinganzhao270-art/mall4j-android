@@ -26,6 +26,18 @@ if [[ ! -f "$SOURCE_DIR/pom.xml" || ! -f "$SOURCE_DIR/db/yami_shop.sql" ]]; then
   exit 1
 fi
 
+UPSTREAM_REF="c69b6793ef2c7f528c5e7364aecd22f0b9f7209f"
+if ! git -C "$SOURCE_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "The upstream Mall4j directory must be a Git clone at revision $UPSTREAM_REF." >&2
+  exit 1
+fi
+ACTUAL_REF="$(git -C "$SOURCE_DIR" rev-parse HEAD)"
+if [[ "$ACTUAL_REF" != "$UPSTREAM_REF" ]]; then
+  echo "Expected upstream Mall4j revision $UPSTREAM_REF but found $ACTUAL_REF." >&2
+  echo "Check out the pinned revision before deploying; do not build from an unreviewed moving branch." >&2
+  exit 1
+fi
+
 for name in MYSQL_ROOT_PASSWORD MYSQL_USER MYSQL_PASSWORD REDIS_PASSWORD XXL_JOB_ACCESS_TOKEN MALL4J_API_BASE_URL MALL4J_ADMIN_API_BASE_URL MALL4J_RESOURCES_BASE_URL MALL4J_ADMIN_WEB_ORIGIN SHOP_TOKEN_AES_KEY; do
   if [[ -z "${!name:-}" || "${!name}" == REPLACE_* ]]; then
     echo "Set a real value for $name in infra/.env.production before deployment." >&2
