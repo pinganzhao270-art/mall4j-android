@@ -25,6 +25,7 @@ Files in `infra/` provide a starting point:
 
 - `docker-compose.production.yml`: MySQL 5.7, Redis 5.0.4, Mall4j API and admin.
 - `.env.production.example`: required secrets and deployment paths.
+- `nginx-api.conf`: HTTPS reverse-proxy template for the public API hostname.
 - `.gitignore`: prevents local secrets and backups from being committed.
 
 The database and Redis have no public host ports. API and admin are bound to
@@ -51,9 +52,10 @@ them directly to the internet.
    docker compose --env-file infra/.env.production -f infra/docker-compose.production.yml logs --tail=200 api admin
    ```
 
-6. Configure a reverse proxy and TLS certificate. Route the public API hostname to
-   `http://127.0.0.1:8086`. Keep the admin panel restricted (VPN, allowlisted IPs,
-   or another access-control layer); do not publish it openly.
+6. Adapt `infra/nginx-api.conf` with the real API domain and certificate paths, then
+   enable it in Nginx. Route the public API hostname to `http://127.0.0.1:8086`.
+   Keep the admin panel restricted (VPN, allowlisted IPs, or another access-control
+   layer); do not publish it openly.
 7. Test API reachability, login, product/category reads, image uploads, cart, order
    creation, and admin operations before configuring the Android build.
 
