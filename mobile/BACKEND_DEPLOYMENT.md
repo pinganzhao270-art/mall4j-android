@@ -24,13 +24,15 @@ uses 8112 and 8111; do not mix these ports with the supplied Dockerfiles.
 - `infra/docker-compose.production.yml`: private database, cache, scheduler, customer
   API, admin API and management frontend services.
 - `infra/xxl-job-schema.sql`: XXL-JOB 2.4.2 schema and database grant.
-- `infra/deploy.sh`: builds the management frontend, patches the upstream CORS
-  allowlist to the exact management website origin, compiles Java modules with Java 17,
-  then starts the Compose stack.
+- `infra/bootstrap-ubuntu.sh`: installs Docker Engine/Compose, Nginx and Certbot.
+- `infra/configure-upstream.py`: repeatable production patch for CORS, token key,
+  local media storage and image-upload fixes.
+- `infra/deploy.sh`: builds the admin frontend, compiles Java modules and deploys
+  the complete Compose stack.
+- `infra/backup.sh`: backs up MySQL/XXL-JOB databases and uploaded images.
 - `infra/.env.production.example`: deployment secrets and real-domain settings.
-- `infra/nginx-api.conf`: customer API HTTPS reverse proxy.
-- `infra/nginx-admin-api.conf`: admin API HTTPS reverse proxy.
-- `infra/nginx-admin-web.conf`: admin web HTTPS reverse proxy.
+- `infra/nginx-api.conf`, `nginx-admin-api.conf`, `nginx-admin-web.conf`: HTTPS
+  reverse-proxy templates for the customer API, admin API and admin website.
 - `infra/nginx-admin-static.conf`: static SPA server configuration inside its
   container.
 
@@ -61,10 +63,12 @@ uses 8112 and 8111; do not mix these ports with the supplied Dockerfiles.
    schema grants this database account access to its own database. Use long, unique
    values for database, Redis and scheduler credentials. Never commit the real env
    file.
-5. Run `bash infra/deploy.sh` from the repository root. It builds the Vue admin
-   frontend with Node 20.19/pnpm, patches CORS to allow only
-   `MALL4J_ADMIN_WEB_ORIGIN`, builds Java modules with Java 17/Maven, and starts
-   MySQL, Redis, XXL-JOB, both APIs and the admin web container.
+5. Run `bash infra/deploy.sh` from the repository root. It applies the production
+   patch to the pinned upstream checkout, builds the Vue admin frontend with
+   Node 20.19/pnpm, builds Java modules with Java 17/Maven, validates Compose and
+   starts MySQL, Redis, XXL-JOB, both APIs and the admin web container. The patch
+   restricts CORS to `MALL4J_ADMIN_WEB_ORIGIN`, switches uploads to persistent local
+   storage, replaces the default token AES key and fixes nested image upload paths.
 6. Configure host Nginx using the three HTTPS templates. Replace the example
    hostnames and certificate paths in each file before enabling it:
    - `infra/nginx-api.conf` -> `127.0.0.1:8086`
@@ -109,9 +113,14 @@ default password is safe for public deployment.
 
 ## Android client API
 
-After the customer API responds correctly over HTTPS, set the GitHub repository
-variable `MALL4J_API_BASE_URL` to exactly the same URL as the deployment setting.
-The Android client build workflow refuses localhost, private-network or HTTP URLs.
+After the customer API and image endpoint respond correctly over HTTPS, set these
+GitHub repository variables before a future manual Android build:
+
+- `MALL4J_API_BASE_URL`: customer API base URL.
+- `MALL4J_RESOURCES_BASE_URL`: image base URL ending in `/mall4j/img/`.
+
+Use the same values as `infra/.env.production`. The Android workflow refuses
+localhost, private-network, example or HTTP URLs.
 
 ## External integrations still requiring merchant credentials
 
