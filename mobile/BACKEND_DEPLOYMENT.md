@@ -38,9 +38,18 @@ uses 8112 and 8111; do not mix these ports with the supplied Dockerfiles.
 
 1. Prepare a Linux server with Docker Engine, the Docker Compose plugin, Nginx and
    Certbot (or another trusted TLS certificate manager).
-2. Check out this repository and the matching upstream `gz-yami/mall4j` repository
-   into sibling directories. By default the upstream checkout is expected at
-   `../mall4j-upstream`; otherwise set `MALL4J_SOURCE_DIR` to its absolute path.
+2. Check out this repository and the pinned upstream `gz-yami/mall4j` source into
+   sibling directories. The verified source revision is
+   `c69b6793ef2c7f528c5e7364aecd22f0b9f7209f`:
+   
+   ```bash
+   git clone https://github.com/gz-yami/mall4j.git ../mall4j-upstream
+   git -C ../mall4j-upstream checkout c69b6793ef2c7f528c5e7364aecd22f0b9f7209f
+   ```
+
+   By default the upstream checkout is expected at `../mall4j-upstream`; otherwise
+   set `MALL4J_SOURCE_DIR` to its absolute path. The deployment script rejects a
+   different source revision so builds remain reproducible.
 3. Create DNS records and valid TLS certificates for three separate hostnames:
    - `api.your-domain` for the customer API on port 8086
    - `admin-api.your-domain` for the management API on port 8085
