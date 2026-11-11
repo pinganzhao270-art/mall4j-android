@@ -43,16 +43,35 @@ jobs:
         working-directory: mall4j-upstream/front-end/mall4uni
         env:
           MALL4J_API_BASE_URL: ${{ vars.MALL4J_API_BASE_URL }}
+          MALL4J_RESOURCES_BASE_URL: ${{ vars.MALL4J_RESOURCES_BASE_URL }}
         run: |
           if [ -z "$MALL4J_API_BASE_URL" ]; then
             echo "::error::Set repository variable MALL4J_API_BASE_URL to your deployed Mall4j API HTTPS URL before building a production APK."
             exit 1
           fi
-          case "$MALL4J_API_BASE_URL" in
-            https://*) ;;
-            *) echo "::error::MALL4J_API_BASE_URL must use HTTPS."; exit 1 ;;
-          esac
-          sed -i "s#http://127.0.0.1:8086#${MALL4J_API_BASE_URL%/}#" .env.production
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+          from urllib.parse import urlsplit
+
+          values = {
+              "VITE_APP_BASE_API": os.environ["MALL4J_API_BASE_URL"].rstrip("/"),
+              "VITE_APP_RESOURCES_URL": os.environ["MALL4J_RESOURCES_BASE_URL"].rstrip("/") + "/",
+          }
+          for key, value in values.items():
+              parsed = urlsplit(value)
+              if parsed.scheme != "https" or not parsed.netloc or parsed.query or parsed.fragment or "'" in value:
+                  raise SystemExit(f"{key} must be a valid HTTPS URL without query or fragment")
+          path = Path(".env.production")
+          content = path.read_text()
+          for key, value in values.items():
+              pattern = re.compile(r"(?m)^\\s*" + re.escape(key) + r"\\s*=.*$")
+              content, count = pattern.subn(key + " = '" + value + "'", content)
+              if count != 1:
+                  raise SystemExit("Expected exactly one " + key + " in .env.production; found " + str(count))
+          path.write_text(content)
+          PY
 
       - name: Build Android App
         working-directory: mall4j-upstream/front-end/mall4uni
