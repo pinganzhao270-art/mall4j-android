@@ -68,6 +68,15 @@ if old_upload in upload_text:
     upload_text = upload_text.replace(old_upload, new_upload)
 elif new_upload not in upload_text:
     raise SystemExit("Unexpected image upload directory implementation; refusing to build")
+
+old_delete = """        file.deleteOnExit();"""
+new_delete = """        if (file.exists() && !file.delete()) {
+            throw new YamiShopBindException("删除文件失败：" + file.getPath());
+        }"""
+if old_delete in upload_text:
+    upload_text = upload_text.replace(old_delete, new_delete)
+elif new_delete not in upload_text:
+    raise SystemExit("Unexpected image deletion implementation; refusing to build")
 upload_util.write_text(upload_text, encoding="utf-8")
 
 print("Mall4j production properties, image uploads and exact admin CORS origin configured.")
