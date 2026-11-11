@@ -85,6 +85,8 @@ services:
       REDIS_PORT: 6379
       REDIS_DATABASE: 0
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - mall4j_uploads:/data/mall4j/images
     ports:
       - "127.0.0.1:8086:8086"
     depends_on:
@@ -130,8 +132,14 @@ services:
       REDIS_PORT: 6379
       REDIS_DATABASE: 0
       SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      SHOP_IMGUPLOAD_UPLOADTYPE: "1"
+      SHOP_IMGUPLOAD_IMAGEPATH: /data/mall4j/images/
+      SHOP_IMGUPLOAD_RESOURCEURL: ${MALL4J_RESOURCES_BASE_URL}
+      SHOP_TOKENAESKEY: ${SHOP_TOKEN_AES_KEY}
       XXL_JOB_ADDRESS: ${XXL_JOB_ADDRESS:-http://xxl-job:8080/xxl-job-admin}
       XXL_JOB_ACCESS_TOKEN: ${XXL_JOB_ACCESS_TOKEN:?Set XXL_JOB_ACCESS_TOKEN in infra/.env.production}
+    volumes:
+      - mall4j_uploads:/data/mall4j/images
     ports:
       - "127.0.0.1:8085:8085"
     depends_on:
@@ -151,3 +159,4 @@ networks:
 volumes:
   mall4j_mysql_data:
   mall4j_redis_data:
+  mall4j_uploads:
