@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: mall4j-client-validation-final
+  group: mall4j-client-validation-retry-20261112
   cancel-in-progress: true
 
 jobs:
