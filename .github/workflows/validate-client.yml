@@ -101,7 +101,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Validate deployment shell script
-        run: bash -n infra/deploy.sh
+        run: for script in infra/*.sh; do bash -n "$script"; done
 
       - name: Validate production patcher syntax
         run: python3 -m py_compile infra/configure-upstream.py
