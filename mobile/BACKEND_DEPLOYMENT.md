@@ -77,7 +77,8 @@ use the configured `MALL4J_RESOURCES_BASE_URL` value.
 The SQL files are mounted into MySQL's first-run initialization directory. MySQL only
 executes them when its data directory is empty. The Mall4j SQL dump contains table
 drops and is destructive if manually re-run against a live store. Never delete the
-database volume to reset a live service. Back up the database and uploaded media, and
+database volume to reset a live service. Run `bash infra/backup.sh` to create a database dump and image archive in `backups/`.
+Schedule this script with cron or a system scheduler, copy backups off-server, and
 test restoration before taking real orders.
 
 The template currently pins MySQL 5.7 and Redis 5.0.4 to match the upstream project's
