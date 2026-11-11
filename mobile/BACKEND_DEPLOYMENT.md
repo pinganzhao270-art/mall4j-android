@@ -36,8 +36,10 @@ uses 8112 and 8111; do not mix these ports with the supplied Dockerfiles.
 
 ## Server deployment
 
-1. Prepare a Linux server with Docker Engine, the Docker Compose plugin, Nginx and
-   Certbot (or another trusted TLS certificate manager).
+1. Prepare an Ubuntu server. A practical starting point is 4 vCPU, 8 GB RAM and
+   80 GB SSD; increase capacity for a large catalogue, heavy traffic or frequent
+   media uploads. Run `sudo bash infra/bootstrap-ubuntu.sh` to install Docker Engine,
+   Compose, Nginx and Certbot, or install equivalent supported versions manually.
 2. Check out this repository and the pinned upstream `gz-yami/mall4j` source into
    sibling directories. The verified source revision is
    `c69b6793ef2c7f528c5e7364aecd22f0b9f7209f`:
