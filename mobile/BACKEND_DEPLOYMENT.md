@@ -59,10 +59,10 @@ uses 8112 and 8111; do not mix these ports with the supplied Dockerfiles.
    - `admin-api.your-domain` for the management API on port 8085
    - `admin.your-domain` for the management website on port 8084
 4. Copy `infra/.env.production.example` to `infra/.env.production`. Replace every
-   example domain and secret. Keep `MYSQL_USER=mall4j_app`, because the scheduler
-   schema grants this database account access to its own database. Use long, unique
-   values for database, Redis and scheduler credentials. Never commit the real env
-   file.
+   example domain and secret. Generate shell-safe secrets with `openssl rand -hex 32`
+   (use `openssl rand -hex 16` for the 32-character AES key). Keep
+   `MYSQL_USER=mall4j_app`, because the scheduler schema grants this database account
+   access to its own database. Never commit the real env file.
 5. Run `bash infra/deploy.sh` from the repository root. It applies the production
    patch to the pinned upstream checkout, builds the Vue admin frontend with
    Node 20.19/pnpm, builds Java modules with Java 17/Maven, validates Compose and
