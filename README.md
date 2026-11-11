@@ -1,17 +1,19 @@
 # Mall4j Android
 
-Android client build workspace for Mall4j.
+Android storefront and production deployment workspace for the upstream Mall4j project.
 
-- Android only; no iOS or app-store publication.
-- Upstream client: `gz-yami/mall4j/front-end/mall4uni`.
-- Backend: Mall4j Java API with MySQL and Redis.
-- Backend deployment template: [infra/docker-compose.production.yml](infra/docker-compose.production.yml).
-- Backend setup and security checklist: [mobile/BACKEND_DEPLOYMENT.md](mobile/BACKEND_DEPLOYMENT.md).
-- Build workflow: [Build Mall4j Android APK](.github/workflows/android-apk.yml).
+- Android storefront source: upstream `front-end/mall4uni`.
+- Management console: upstream `front-end/mall4v`.
+- Backend: Java/Spring Boot, MySQL and Redis.
+- Scheduler: XXL-JOB 2.4.2.
+- Deployment: Docker Compose with Nginx HTTPS reverse proxies.
+- Android only; no iOS packaging or app-store publication.
 
-Read [mobile/README.md](mobile/README.md) for client configuration and build details.
+Start with [the full backend and management deployment guide](mobile/BACKEND_DEPLOYMENT.md).
+The `infra/` directory contains production templates and a deployment script.
 
-**Important:** A real production APK requires a deployed Mall4j API reachable over HTTPS.
-The build workflow will not silently package a production app with a localhost API
-address. Review upstream AGPL-3.0 obligations and obtain any commercial authorization
-required by the upstream project before commercial use.
+The APK workflow is separate and is not required during backend/client preparation.
+A production Android build requires the deployed customer API over HTTPS.
+
+**License:** upstream Mall4j is AGPL-3.0. Review all license obligations and obtain
+commercial authorization if required before operating a public commercial store.
