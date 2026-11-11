@@ -5,6 +5,8 @@
 
 CREATE DATABASE IF NOT EXISTS `xxl_job` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `xxl_job`;
+GRANT ALL PRIVILEGES ON `xxl_job`.* TO 'mall4j_app'@'%';
+FLUSH PRIVILEGES;
 SET NAMES utf8mb4;
 
 CREATE TABLE `xxl_job_info` (
