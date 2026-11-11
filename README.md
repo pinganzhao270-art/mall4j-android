@@ -10,6 +10,7 @@ Android storefront and production deployment workspace for the upstream Mall4j p
 - Android only; no iOS packaging or app-store publication.
 
 Start with [the full backend and management deployment guide](mobile/BACKEND_DEPLOYMENT.md).
+Review [external integrations and release prerequisites](mobile/PRODUCTION_INTEGRATIONS.md) before public launch.
 The `infra/` directory contains production templates and a deployment script.
 
 The APK workflow is separate and is not required during backend/client preparation.
