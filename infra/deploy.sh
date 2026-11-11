@@ -26,7 +26,7 @@ if [[ ! -f "$SOURCE_DIR/pom.xml" || ! -f "$SOURCE_DIR/db/yami_shop.sql" ]]; then
   exit 1
 fi
 
-for name in MYSQL_ROOT_PASSWORD MYSQL_USER MYSQL_PASSWORD REDIS_PASSWORD XXL_JOB_ACCESS_TOKEN MALL4J_API_BASE_URL MALL4J_ADMIN_API_BASE_URL; do
+for name in MYSQL_ROOT_PASSWORD MYSQL_USER MYSQL_PASSWORD REDIS_PASSWORD XXL_JOB_ACCESS_TOKEN MALL4J_API_BASE_URL MALL4J_ADMIN_API_BASE_URL MALL4J_ADMIN_WEB_ORIGIN; do
   if [[ -z "${!name:-}" || "${!name}" == REPLACE_* ]]; then
     echo "Set a real value for $name in infra/.env.production before deployment." >&2
     exit 1
@@ -34,7 +34,15 @@ for name in MYSQL_ROOT_PASSWORD MYSQL_USER MYSQL_PASSWORD REDIS_PASSWORD XXL_JOB
 done
 
 if [[ "$MALL4J_API_BASE_URL" != https://* || "$MALL4J_ADMIN_API_BASE_URL" != https://* ]]; then
-  echo "Both MALL4J_API_BASE_URL and MALL4J_ADMIN_API_BASE_URL must be HTTPS URLs." >&2
+  echo "Both API base URLs must be HTTPS URLs." >&2
+  exit 1
+fi
+if [[ "$MALL4J_API_BASE_URL" == *example.com* || "$MALL4J_ADMIN_API_BASE_URL" == *example.com* ]]; then
+  echo "Replace example.com API URLs with your real deployed domains." >&2
+  exit 1
+fi
+if [[ ! "$MALL4J_ADMIN_WEB_ORIGIN" =~ ^https://[A-Za-z0-9.-]+(:[0-9]+)?$ || "$MALL4J_ADMIN_WEB_ORIGIN" == *example.com* ]]; then
+  echo "MALL4J_ADMIN_WEB_ORIGIN must be the real HTTPS admin website origin without a path." >&2
   exit 1
 fi
 
@@ -50,6 +58,9 @@ docker run --rm \
   -w /workspace \
   node:20.19-bookworm-slim \
   sh -lc 'corepack enable && corepack prepare pnpm@9 --activate && pnpm install --no-frozen-lockfile && pnpm run build'
+
+CORS_CONFIG="$SOURCE_DIR/yami-shop-security/yami-shop-security-common/src/main/java/com/yami/shop/security/common/config/CorsConfig.java"
+python3 -c 'import pathlib,sys; p=pathlib.Path(sys.argv[1]); s=p.read_text(); old="configuration.addAllowedOriginPattern(\"*\");"; new="configuration.addAllowedOrigin(\""+sys.argv[2]+"\");"; s=s.replace(old,new) if old in s else s; (p.write_text(s) if new in s else (_ for _ in ()).throw(SystemExit("Unexpected upstream CORS configuration; refusing unsafe build.")))' "$CORS_CONFIG" "$MALL4J_ADMIN_WEB_ORIGIN"
 
 echo "Building Mall4j backend modules with Java 17 in a Maven container..."
 docker run --rm \
