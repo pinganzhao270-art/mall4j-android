@@ -135,6 +135,7 @@ services:
       XXL_JOB_ACCESS_TOKEN: ${XXL_JOB_ACCESS_TOKEN:?Set XXL_JOB_ACCESS_TOKEN in infra/.env.production}
     volumes:
       - mall4j_uploads:/data/mall4j/images
+      - mall4j_xxl_logs:/data/applogs/xxl-job/jobhandler
     ports:
       - "127.0.0.1:8085:8085"
     healthcheck:
@@ -161,3 +162,4 @@ volumes:
   mall4j_mysql_data:
   mall4j_redis_data:
   mall4j_uploads:
+  mall4j_xxl_logs:
