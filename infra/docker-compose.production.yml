@@ -28,6 +28,8 @@ services:
 
   redis:
     image: redis:5.0.4
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     container_name: mall4j-redis
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD in infra/.env.production}"]
