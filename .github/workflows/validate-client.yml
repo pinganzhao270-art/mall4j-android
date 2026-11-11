@@ -1,21 +1,16 @@
 name: Validate Mall4j Client
 
 on:
+  # Temporarily manual-only while the existing GitHub Actions backlog drains.
+  # Restore the filtered push trigger after the queue has cleared.
   workflow_dispatch:
-  push:
-    branches:
-      - develop/android-foundation
-    paths:
-      - ".github/workflows/validate-client.yml"
-      - "mobile/**"
-      - "infra/**"
 
 permissions:
   contents: read
 
 concurrency:
-  group: mall4j-client-validation-retry-20261112
-  cancel-in-progress: true
+  group: mall4j-client-validation
+  cancel-in-progress: false
 
 jobs:
   validate:
