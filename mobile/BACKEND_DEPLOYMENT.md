@@ -23,7 +23,9 @@ domain; MySQL and Redis stay on a private Docker network.
 
 Files in `infra/` provide a starting point:
 
-- `docker-compose.production.yml`: MySQL 5.7, Redis 5.0.4, Mall4j API and admin.
+- `docker-compose.production.yml`: MySQL 5.7, Redis 5.0.4, XXL-JOB 2.4.2, Mall4j API and admin.
+- `xxl-job-schema.sql`: scheduler database schema and limited application-user grant.
+- `deploy.sh`: Maven build followed by Compose deployment.
 - `.env.production.example`: required secrets and deployment paths.
 - `nginx-api.conf`: HTTPS reverse-proxy template for the public API hostname.
 - `.gitignore`: prevents local secrets and backups from being committed.
@@ -39,10 +41,12 @@ them directly to the internet.
    sibling directories, unless you set `MALL4J_SOURCE_DIR` to another path.
 3. Copy `infra/.env.production.example` to `infra/.env.production`. Replace every
    placeholder with unique, strong secrets. Never upload the real file to GitHub.
-4. From the repository root, start the stack:
+4. From the repository root, run the deployment script. It compiles the upstream
+   Maven modules with Java 17, then starts the database, Redis, scheduler, API and
+   management services:
 
    ```bash
-   docker compose --env-file infra/.env.production -f infra/docker-compose.production.yml up -d --build
+   bash infra/deploy.sh
    ```
 
 5. Check service state and logs:
@@ -68,9 +72,11 @@ them directly to the internet.
   It is mounted only as a first-initialization script. Never delete the database
   volume to "reset" a live store.
 - Back up MySQL and persistent uploads regularly; test restore procedures.
-- The admin service references an XXL-JOB admin endpoint. The template exposes
-  `XXL_JOB_ADDRESS` and `XXL_JOB_ACCESS_TOKEN`; deploy/configure the matching
-  scheduler service if scheduled jobs are required.
+- XXL-JOB 2.4.2 is included as a private service on port 8087 (loopback only). The
+  default scheduler login is `admin / 123456`; change it immediately after first
+  login. Access the panel through an SSH tunnel rather than publishing it publicly.
+  The scheduler access token must be a unique secret and must match the Mall4j admin
+  executor token.
 - Review payment provider integration, callback URLs, email/SMS credentials,
   object storage, shipping providers, privacy policy, and applicable local laws
   before taking real orders or money.
