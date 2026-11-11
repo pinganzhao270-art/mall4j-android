@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: gz-yami/mall4j
-          ref: master
+          ref: c69b6793ef2c7f528c5e7364aecd22f0b9f7209f
           path: mall4j-upstream
 
       - name: Set up Node.js
