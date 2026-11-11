@@ -51,7 +51,7 @@ jobs:
           fi
           python3 - <<'PY'
           import os
-          import re
+          import os
           from pathlib import Path
           from urllib.parse import urlsplit
 
@@ -62,14 +62,16 @@ jobs:
           for key, value in values.items():
               parsed = urlsplit(value)
               if parsed.scheme != "https" or not parsed.netloc or parsed.query or parsed.fragment or "'" in value:
-                  raise SystemExit(f"{key} must be a valid HTTPS URL without query or fragment")
+                  raise SystemExit(key + " must be a valid HTTPS URL without query or fragment")
           path = Path(".env.production")
           content = path.read_text()
           for key, value in values.items():
-              pattern = re.compile(r"(?m)^\\s*" + re.escape(key) + r"\\s*=.*$")
-              content, count = pattern.subn(key + " = '" + value + "'", content)
-              if count != 1:
-                  raise SystemExit("Expected exactly one " + key + " in .env.production; found " + str(count))
+              lines = content.splitlines()
+              matches = [i for i, line in enumerate(lines) if line.strip().startswith(key + " =")]
+              if len(matches) != 1:
+                  raise SystemExit("Expected exactly one " + key + " in .env.production; found " + str(len(matches)))
+              lines[matches[0]] = key + " = '" + value + "'"
+              content = "\n".join(lines) + "\n"
           path.write_text(content)
           PY
 
