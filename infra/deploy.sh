@@ -49,7 +49,7 @@ for name in MYSQL_ROOT_PASSWORD MYSQL_USER MYSQL_PASSWORD REDIS_PASSWORD XXL_JOB
 done
 
 if [[ "$MALL4J_API_BASE_URL" != https://* || "$MALL4J_ADMIN_API_BASE_URL" != https://* || "$MALL4J_RESOURCES_BASE_URL" != https://* ]]; then
-  echo "Both API base URLs must be HTTPS URLs." >&2
+  echo "Customer API, admin API and resource URLs must all use HTTPS." >&2
   exit 1
 fi
 if [[ "$MALL4J_API_BASE_URL" == *example.com* || "$MALL4J_ADMIN_API_BASE_URL" == *example.com* || "$MALL4J_RESOURCES_BASE_URL" == *example.com* ]]; then
