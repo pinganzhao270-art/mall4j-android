@@ -1,0 +1,55 @@
+name: Validate Mall4j Client
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - develop/android-foundation
+    paths:
+      - ".github/workflows/validate-client.yml"
+      - "mobile/**"
+      - "infra/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mall4j-client-validation
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout app configuration
+        uses: actions/checkout@v4
+
+      - name: Checkout upstream Mall4j
+        uses: actions/checkout@v4
+        with:
+          repository: gz-yami/mall4j
+          ref: master
+          path: mall4j-upstream
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install uni-app dependencies
+        working-directory: mall4j-upstream/front-end/mall4uni
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Lint client source
+        working-directory: mall4j-upstream/front-end/mall4uni
+        run: pnpm run lint
+
+      - name: Build H5 validation bundle
+        working-directory: mall4j-upstream/front-end/mall4uni
+        run: pnpm run build:h5
