@@ -48,4 +48,26 @@ if 'addAllowedOriginPattern("*")' in cors_text:
     raise SystemExit("Wildcard CORS origin remains enabled")
 cors.write_text(cors_text, encoding="utf-8")
 
-print("Mall4j production properties and exact admin CORS origin configured.")
+upload_util = source / "yami-shop-common/src/main/java/com/yami/shop/common/util/ImgUploadUtil.java"
+if not upload_util.is_file():
+    raise SystemExit("Mall4j image upload utility is missing")
+upload_text = upload_util.read_text(encoding="utf-8")
+old_upload = """        File file = new File(filePath + fileName);
+        if (!file.exists()) {
+            boolean result = file.mkdirs();
+            if (!result) {
+                throw new YamiShopBindException("创建目录：" + filePath + "失败");
+            }
+        }"""
+new_upload = """        File file = new File(filePath + fileName);
+        File parent = file.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs() && !parent.exists()) {
+            throw new YamiShopBindException("创建目录：" + parent.getPath() + "失败");
+        }"""
+if old_upload in upload_text:
+    upload_text = upload_text.replace(old_upload, new_upload)
+elif new_upload not in upload_text:
+    raise SystemExit("Unexpected image upload directory implementation; refusing to build")
+upload_util.write_text(upload_text, encoding="utf-8")
+
+print("Mall4j production properties, image uploads and exact admin CORS origin configured.")
