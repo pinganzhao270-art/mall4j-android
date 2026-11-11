@@ -79,4 +79,16 @@ elif new_delete not in upload_text:
     raise SystemExit("Unexpected image deletion implementation; refusing to build")
 upload_util.write_text(upload_text, encoding="utf-8")
 
+file_controller = source / "yami-shop-admin/src/main/java/com/yami/shop/admin/controller/FileController.java"
+if not file_controller.is_file():
+    raise SystemExit("Mall4j admin file controller is missing")
+controller_text = file_controller.read_text(encoding="utf-8")
+old_url = "data = imgUploadUtil.getUploadPath() + fileName;"
+new_url = "data = imgUploadUtil.getResourceUrl() + fileName;"
+if old_url in controller_text:
+    controller_text = controller_text.replace(old_url, new_url)
+elif new_url not in controller_text:
+    raise SystemExit("Unexpected local rich-text image URL implementation; refusing to build")
+file_controller.write_text(controller_text, encoding="utf-8")
+
 print("Mall4j production properties, image uploads and exact admin CORS origin configured.")
