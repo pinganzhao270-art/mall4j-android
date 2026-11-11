@@ -61,12 +61,6 @@ services:
         condition: service_healthy
     networks:
       - mall4j_internal
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8080'"]
-      interval: 20s
-      timeout: 5s
-      retries: 15
-      start_period: 90s
 
   api:
     build:
@@ -155,7 +149,7 @@ services:
       redis:
         condition: service_healthy
       xxl-job:
-        condition: service_healthy
+        condition: service_started
     networks:
       - mall4j_internal
 
