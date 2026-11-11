@@ -54,7 +54,7 @@ uses 8112 and 8111; do not mix these ports with the supplied Dockerfiles.
    frontend with Node 20.19/pnpm, patches CORS to allow only
    `MALL4J_ADMIN_WEB_ORIGIN`, builds Java modules with Java 17/Maven, and starts
    MySQL, Redis, XXL-JOB, both APIs and the admin web container.
-6. Configure the host Nginx using the three HTTPS templates. Replace the example
+6. Configure host Nginx using the three HTTPS templates. Replace the example
    hostnames and certificate paths in each file before enabling it:
    - `infra/nginx-api.conf` -> `127.0.0.1:8086`
    - `infra/nginx-admin-api.conf` -> `127.0.0.1:8085`
