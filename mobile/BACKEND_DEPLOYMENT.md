@@ -1,95 +1,112 @@
-# Mall4j backend deployment
+# Mall4j backend and management deployment
 
-The Mall4j backend is a Java/Spring Boot application backed by MySQL and Redis. It is
-not a Supabase backend. The Android client must connect to the API over a public HTTPS
-domain; MySQL and Redis stay on a private Docker network.
+Mall4j uses a Java/Spring Boot backend, MySQL and Redis. The customer Android app and
+the management web console are separate clients and use separate backend ports. This
+is not a Supabase backend.
 
-## Verified upstream configuration
+## Production topology
 
-- The supplied Dockerfiles launch the `docker` Spring profile.
-- In that profile, the API listens on **8086** and the admin service on **8085**.
-- The separate `prod` profile uses API port **8112** and admin port **8111**. Do not
-  mix the `prod` ports with the supplied Dockerfiles, which explicitly activate
-  `docker`.
-- The Docker profile accepts `MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_DATABASE`,
-  `MYSQL_USERNAME`, `MYSQL_PASSWORD`, `REDIS_HOST`, `REDIS_PORT`, and
-  `REDIS_DATABASE`. Spring Redis password can be supplied as
-  `SPRING_DATA_REDIS_PASSWORD`.
-- The upstream SQL dump creates the `yami_shops` database and contains table/data
-  initialization. The deployment template mounts it into MySQL's first-run init
-  directory. MySQL only runs these scripts when its data directory is empty.
+| Component | Internal service | Host binding | Public access |
+|---|---|---:|---|
+| MySQL 5.7 | mysql:3306 | private only | never |
+| Redis 5.0.4 | redis:6379 | private only | never |
+| XXL-JOB 2.4.2 | xxl-job:8080 | 127.0.0.1:8087 | SSH tunnel only |
+| Mall4j customer API | api:8086 | 127.0.0.1:8086 | HTTPS API domain |
+| Mall4j admin API | admin:8085 | 127.0.0.1:8085 | HTTPS admin-API domain |
+| Mall4j admin web | admin-web:80 | 127.0.0.1:8084 | HTTPS admin domain |
 
-## Included deployment template
+The upstream Dockerfiles explicitly launch Spring's `docker` profile. In that profile
+the customer API listens on 8086 and admin API on 8085. The separate `prod` profile
+uses 8112 and 8111; do not mix these ports with the supplied Dockerfiles.
 
-Files in `infra/` provide a starting point:
+## Files added in this repository
 
-- `docker-compose.production.yml`: MySQL 5.7, Redis 5.0.4, XXL-JOB 2.4.2, Mall4j API and admin.
-- `xxl-job-schema.sql`: scheduler database schema and limited application-user grant.
-- `deploy.sh`: Maven build followed by Compose deployment.
-- `.env.production.example`: required secrets and deployment paths.
-- `nginx-api.conf`: HTTPS reverse-proxy template for the public API hostname.
-- `.gitignore`: prevents local secrets and backups from being committed.
+- `infra/docker-compose.production.yml`: private database, cache, scheduler, customer
+  API, admin API and management frontend services.
+- `infra/xxl-job-schema.sql`: XXL-JOB 2.4.2 schema and database grant.
+- `infra/deploy.sh`: builds the management frontend, patches the upstream CORS
+  allowlist to the exact management website origin, compiles Java modules with Java 17,
+  then starts the Compose stack.
+- `infra/.env.production.example`: deployment secrets and real-domain settings.
+- `infra/nginx-api.conf`: customer API HTTPS reverse proxy.
+- `infra/nginx-admin-api.conf`: admin API HTTPS reverse proxy.
+- `infra/nginx-admin-web.conf`: admin web HTTPS reverse proxy.
+- `infra/nginx-admin-static.conf`: static SPA server configuration inside its
+  container.
 
-The database and Redis have no public host ports. API and admin are bound to
-`127.0.0.1` only, so a host-level reverse proxy can reach them without exposing
-them directly to the internet.
+## Server deployment
 
-## Deployment host preparation
-
-1. Use a Linux server with Docker Engine and the Docker Compose plugin.
-2. Check out this repository and the matching upstream `gz-yami/mall4j` source into
-   sibling directories, unless you set `MALL4J_SOURCE_DIR` to another path.
-3. Copy `infra/.env.production.example` to `infra/.env.production`. Replace every
-   placeholder with unique, strong secrets. Never upload the real file to GitHub.
-4. From the repository root, run the deployment script. It compiles the upstream
-   Maven modules with Java 17, then starts the database, Redis, scheduler, API and
-   management services:
-
-   ```bash
-   bash infra/deploy.sh
-   ```
-
-5. Check service state and logs:
-
+1. Prepare a Linux server with Docker Engine, the Docker Compose plugin, Nginx and
+   Certbot (or another trusted TLS certificate manager).
+2. Check out this repository and the matching upstream `gz-yami/mall4j` repository
+   into sibling directories. By default the upstream checkout is expected at
+   `../mall4j-upstream`; otherwise set `MALL4J_SOURCE_DIR` to its absolute path.
+3. Create DNS records and valid TLS certificates for three separate hostnames:
+   - `api.your-domain` for the customer API on port 8086
+   - `admin-api.your-domain` for the management API on port 8085
+   - `admin.your-domain` for the management website on port 8084
+4. Copy `infra/.env.production.example` to `infra/.env.production`. Replace every
+   example domain and secret. Keep `MYSQL_USER=mall4j_app`, because the scheduler
+   schema grants this database account access to its own database. Use long, unique
+   values for database, Redis and scheduler credentials. Never commit the real env
+   file.
+5. Run `bash infra/deploy.sh` from the repository root. It builds the Vue admin
+   frontend with Node 20.19/pnpm, patches CORS to allow only
+   `MALL4J_ADMIN_WEB_ORIGIN`, builds Java modules with Java 17/Maven, and starts
+   MySQL, Redis, XXL-JOB, both APIs and the admin web container.
+6. Configure the host Nginx using the three HTTPS templates. Replace the example
+   hostnames and certificate paths in each file before enabling it:
+   - `infra/nginx-api.conf` -> `127.0.0.1:8086`
+   - `infra/nginx-admin-api.conf` -> `127.0.0.1:8085`
+   - `infra/nginx-admin-web.conf` -> `127.0.0.1:8084`
+7. Keep the admin website restricted by IP allowlist or VPN if this is an internal
+   management system. Do not expose MySQL, Redis or XXL-JOB publicly. Access XXL-JOB
+   through an SSH tunnel to localhost port 8087.
+8. Check containers and logs:
    ```bash
    docker compose --env-file infra/.env.production -f infra/docker-compose.production.yml ps
-   docker compose --env-file infra/.env.production -f infra/docker-compose.production.yml logs --tail=200 api admin
+   docker compose --env-file infra/.env.production -f infra/docker-compose.production.yml logs --tail=200 mysql redis xxl-job api admin admin-web
    ```
 
-6. Adapt `infra/nginx-api.conf` with the real API domain and certificate paths, then
-   enable it in Nginx. Route the public API hostname to `http://127.0.0.1:8086`.
-   Keep the admin panel restricted (VPN, allowlisted IPs, or another access-control
-   layer); do not publish it openly.
-7. Test API reachability, login, product/category reads, image uploads, cart, order
-   creation, and admin operations before configuring the Android build.
+## Database initialization and persistence
 
-## Important operational checks
+The SQL files are mounted into MySQL's first-run initialization directory. MySQL only
+executes them when its data directory is empty. The Mall4j SQL dump contains table
+drops and is destructive if manually re-run against a live store. Never delete the
+database volume to reset a live service. Back up the database and uploaded media, and
+test restoration before taking real orders.
 
-- The included upstream database image is MySQL 5.7 and Redis is pinned to 5.0.4 for
-  compatibility with the original Compose setup. Both are legacy versions; assess
-  supported upgrades and security maintenance before a public production launch.
-- The SQL import is destructive on a fresh schema because it contains table drops.
-  It is mounted only as a first-initialization script. Never delete the database
-  volume to "reset" a live store.
-- Back up MySQL and persistent uploads regularly; test restore procedures.
-- XXL-JOB 2.4.2 is included as a private service on port 8087 (loopback only). The
-  default scheduler login is `admin / 123456`; change it immediately after first
-  login. Access the panel through an SSH tunnel rather than publishing it publicly.
-  The scheduler access token must be a unique secret and must match the Mall4j admin
-  executor token.
-- Review payment provider integration, callback URLs, email/SMS credentials,
-  object storage, shipping providers, privacy policy, and applicable local laws
-  before taking real orders or money.
-- Never expose MySQL or Redis ports publicly. Keep secrets out of source control.
+The template currently pins MySQL 5.7 and Redis 5.0.4 to match the upstream project's
+original deployment assumptions. These are legacy versions; validate compatibility
+and a supported upgrade path before a public production launch.
 
-## Android API endpoint
+## First-login security
 
-After the API is reachable through HTTPS, set the GitHub repository variable
-`MALL4J_API_BASE_URL` to the API base URL, for example `https://api.example.com`.
-Do not use localhost, an IP-only HTTP endpoint, or a private LAN address in the app.
+The upstream XXL-JOB schema seeds the scheduler console with `admin / 123456`.
+Change this password immediately after first login. The scheduler access token in
+`XXL_JOB_ACCESS_TOKEN` must be a long random secret and must match the token used by
+the Mall4j admin executor.
+
+The Mall4j admin account is seeded by the upstream SQL dump; inspect the upstream
+initialization data and change any default credentials immediately. Do not assume a
+default password is safe for public deployment.
+
+## Android client API
+
+After the customer API responds correctly over HTTPS, set the GitHub repository
+variable `MALL4J_API_BASE_URL` to exactly the same URL as the deployment setting.
+The Android client build workflow refuses localhost, private-network or HTTP URLs.
+
+## External integrations still requiring merchant credentials
+
+The code and infrastructure do not create third-party merchant accounts or secrets.
+Before real transactions, configure and test payment provider credentials and callback
+URLs, SMS/email providers, object storage/media CDN, shipping/logistics provider,
+domain ownership, privacy policy and customer support contacts. Keep all provider
+secrets on the backend, never in the Android app or frontend build variables.
 
 ## License
 
-The upstream repository is AGPL-3.0. Its uni-app README also states that commercial
-use requires authorization from the author. Resolve the applicable license and
-commercial authorization before public commercial operation.
+The upstream Mall4j project is AGPL-3.0 and its README states that commercial use
+requires authorization from the author. Resolve the applicable license obligations
+and obtain required commercial authorization before public commercial operation.
