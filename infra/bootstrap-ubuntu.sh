@@ -36,6 +36,12 @@ apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin do
 systemctl enable --now docker
 systemctl enable --now nginx
 
+if [[ -n "${SUDO_USER:-}" && "$SUDO_USER" != "root" ]]; then
+  usermod -aG docker "$SUDO_USER"
+  echo "Added $SUDO_USER to the docker group. Log out and back in before running Docker commands without sudo."
+fi
+
 echo "Ubuntu server prerequisites installed."
+echo "The docker group grants root-equivalent access to the server."
 echo "Before public deployment, configure the firewall for SSH/80/443 and verify you can still access SSH."
 echo "Do not expose MySQL, Redis, API, admin API or XXL-JOB container ports directly."
