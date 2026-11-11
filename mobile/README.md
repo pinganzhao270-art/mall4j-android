@@ -26,10 +26,11 @@ to loopback for a host-level reverse proxy.
 
 ## Android API configuration
 
-After the API is deployed and verified through HTTPS, add a GitHub repository variable:
+After the customer API and image endpoint are deployed and verified through HTTPS,
+add these GitHub repository variables before a future manual Android build:
 
-- Name: `MALL4J_API_BASE_URL`
-- Value: your API base URL, for example `https://api.example.com`
+- `MALL4J_API_BASE_URL`: customer API base URL.
+- `MALL4J_RESOURCES_BASE_URL`: persistent image URL base ending in `/mall4j/img/`.
 
 The upstream mobile client reads `VITE_APP_BASE_API` from its production environment.
 The build workflow injects the configured HTTPS URL into that setting. Do not use
