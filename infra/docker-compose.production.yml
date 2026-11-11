@@ -1,0 +1,112 @@
+name: mall4j
+
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: mall4j-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in infra/.env.production}
+      MYSQL_DATABASE: yami_shops
+      MYSQL_USER: ${MYSQL_USER:?Set MYSQL_USER in infra/.env.production}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in infra/.env.production}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+      - --lower_case_table_names=1
+    volumes:
+      - mall4j_mysql_data:/var/lib/mysql
+      - ${MALL4J_SOURCE_DIR:-../mall4j-upstream}/db/yami_shop.sql:/docker-entrypoint-initdb.d/01-yami_shop.sql:ro
+    networks:
+      - mall4j_internal
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 40s
+
+  redis:
+    image: redis:5.0.4
+    container_name: mall4j-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD in infra/.env.production}"]
+    volumes:
+      - mall4j_redis_data:/data
+    networks:
+      - mall4j_internal
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ${MALL4J_SOURCE_DIR:-../mall4j-upstream}
+      dockerfile: yami-shop-api/Dockerfile
+    image: mall4j-api:deployment
+    container_name: mall4j-api
+    restart: unless-stopped
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: yami_shops
+      MYSQL_USERNAME: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DATABASE: 0
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+    ports:
+      - "127.0.0.1:8086:8086"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mall4j_internal
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/127.0.0.1/8086'"]
+      interval: 20s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+
+  admin:
+    build:
+      context: ${MALL4J_SOURCE_DIR:-../mall4j-upstream}
+      dockerfile: yami-shop-admin/Dockerfile
+    image: mall4j-admin:deployment
+    container_name: mall4j-admin
+    restart: unless-stopped
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: yami_shops
+      MYSQL_USERNAME: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DATABASE: 0
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      XXL_JOB_ADDRESS: ${XXL_JOB_ADDRESS:-http://mall4j-job:8080/xxl-job-admin}
+      XXL_JOB_ACCESS_TOKEN: ${XXL_JOB_ACCESS_TOKEN:-replace-this-token}
+    ports:
+      - "127.0.0.1:8085:8085"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - mall4j_internal
+
+networks:
+  mall4j_internal:
+    driver: bridge
+
+volumes:
+  mall4j_mysql_data:
+  mall4j_redis_data:
