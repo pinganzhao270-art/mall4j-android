@@ -119,6 +119,9 @@ URLs, SMS/email providers, object storage/media CDN, shipping/logistics provider
 domain ownership, privacy policy and customer support contacts. Keep all provider
 secrets on the backend, never in the Android app or frontend build variables.
 
+For payment, SMS, app signing, store identity and other merchant-owned prerequisites,
+see [PRODUCTION_INTEGRATIONS.md](PRODUCTION_INTEGRATIONS.md).
+
 ## License
 
 The upstream Mall4j project is AGPL-3.0 and its README states that commercial use
