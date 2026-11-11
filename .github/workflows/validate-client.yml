@@ -91,3 +91,16 @@ jobs:
         env:
           VITE_APP_BASE_API: https://admin-api.example.invalid
         run: pnpm run build
+
+  validate-infrastructure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout app configuration
+        uses: actions/checkout@v4
+
+      - name: Validate deployment shell script
+        run: bash -n infra/deploy.sh
+
+      - name: Validate Docker Compose configuration
+        run: docker compose --env-file infra/.env.production.example -f infra/docker-compose.production.yml config --quiet
